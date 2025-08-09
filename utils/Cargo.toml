@@ -1,0 +1,9 @@
+[package]
+name = "utils"
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+ethereum_ssz = "0.9"
+snap = "1.1.1"

@@ -1,0 +1,31 @@
+[workspace]
+members = ["host", "guest", "utils"]
+
+[workspace.package]
+name = "openvm-ream"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+[workspace.dependencies]
+
+# OpenVM
+openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", features = ["std"] }
+
+# Ere dependencies
+zkvm-interface = { git = "https://github.com/eth-act/ere", rev = "3da61c14cbefc2d15d50b982632af261277d1357", package = "zkvm-interface" }
+
+# Ream dependencies
+ream-consensus = { git = "https://github.com/syjn99/ream", package = "ream-consensus", rev = "50d148b9b0f6f6064dbe3803515f1e10ead93d42", features = [
+    "zkvm",
+] }
+
+# Local dependencies
+utils = { path = "utils" }
+
+# Always optimize.
+[profile.dev]
+opt-level = 3
+
+[patch.crates-io]
+ethereum_hashing = { git = "https://github.com/ReamLabs/ethereum_hashing" }
+ssz_types = { git = "https://github.com/ReamLabs/ssz_types", branch = "magic-extended-list" } # Extends 2^29 to 2^40 list root
