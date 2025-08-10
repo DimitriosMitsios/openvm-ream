@@ -4,5 +4,20 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-utils = { path = "../utils" }
-ream-consensus = {workspace = true}
+# OpenVM dependencies
+openvm.workspace = true
+openvm-sdk.workspace = true
+openvm-circuit.workspace = true
+openvm-stark-sdk.workspace = true
+openvm-build.workspace = true
+openvm-transpiler.workspace = true
+
+# Ream dependencies
+ream-consensus = { workspace = true }
+
+# Local dependencies
+utils.workspace = true
+
+# Miscellaneous dependencies
+eyre.workspace = true
+serde.workspace = true

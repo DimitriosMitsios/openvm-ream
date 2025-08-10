@@ -9,11 +9,11 @@ use eyre::Result;
 use openvm::platform::memory::MEM_SIZE;
 use openvm_build::GuestOptions;
 use openvm_sdk::{
+    Sdk, StdIn,
     config::{AppConfig, SdkVmConfig},
     prover::AppProver,
-    Sdk, StdIn,
 };
-use openvm_stark_sdk::config::{baby_bear_poseidon2::BabyBearPoseidon2Engine, FriParameters};
+use openvm_stark_sdk::config::{FriParameters, baby_bear_poseidon2::BabyBearPoseidon2Engine};
 use openvm_transpiler::elf::Elf;
 use serde::{Deserialize, Serialize};
 
@@ -28,8 +28,7 @@ fn read_elf() -> Result<(), Box<dyn std::error::Error>> {
     // ANCHOR_END: read_elf
     Ok(())
 }
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-
+fn main() -> eyre::Result<()> {
     // ANCHOR: vm_config
     let vm_config = SdkVmConfig::builder()
         .system(Default::default())
@@ -52,15 +51,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sdk = Sdk::new();
 
     // 2a. Build the ELF with guest options and a target filter.
-    let guest_opts = GuestOptions::default();
     let target_path = "../..";
-    let elf = sdk.build(
-        guest_opts,
-        &vm_config,
-        target_path,
-        &Default::default(),
-        None,
-    )?;
+    let elf = sdk.build(GuestOptions::default(), target_path, &Default::default())?;
     // ANCHOR_END: build
 
     // Set up zkVM instance by cargo feature flags.
@@ -76,7 +68,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .join("../../assets/one_basic_attestation/attestation.ssz_snappy"),
     );
 
-
     // ANCHOR: transpilation
     // 3. Transpile the ELF into a VmExe
     let exe = sdk.transpile(elf, vm_config.transpiler())?;
@@ -85,4 +76,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ANCHOR: execution
     // 4. Format your input into StdIn
     // TODO
+
+    Ok(())
 }

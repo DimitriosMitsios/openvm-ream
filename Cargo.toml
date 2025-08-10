@@ -9,10 +9,15 @@ rust-version = "1.85"
 [workspace.dependencies]
 
 # OpenVM
-openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", features = ["std"] }
+openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", features = [
+    "std",
+] }
+openvm-sdk = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.2.0", default-features = false }
+openvm-circuit = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.2.0", default-features = false }
+openvm-stark-sdk = { git = "https://github.com/openvm-org/stark-backend.git", tag = "v1.1.0" }
+openvm-build = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.2.0", default-features = false }
+openvm-transpiler = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.2.0", default-features = false }
 
-# Ere dependencies
-zkvm-interface = { git = "https://github.com/eth-act/ere", rev = "3da61c14cbefc2d15d50b982632af261277d1357", package = "zkvm-interface" }
 
 # Ream dependencies
 ream-consensus = { git = "https://github.com/syjn99/ream", package = "ream-consensus", rev = "50d148b9b0f6f6064dbe3803515f1e10ead93d42", features = [
@@ -21,6 +26,10 @@ ream-consensus = { git = "https://github.com/syjn99/ream", package = "ream-conse
 
 # Local dependencies
 utils = { path = "utils" }
+
+# Miscellaneous dependencies
+eyre = "0.6"
+serde = "1.0"
 
 # Always optimize.
 [profile.dev]
