@@ -1,6 +1,6 @@
 // src/main.rs
 use openvm::io::read;
-use ream_consensus::{attestation::Attestation, electra::beacon_state::BeaconState};
+use ream_consensus::{attestation::Attestation, deneb::beacon_state::BeaconState};
 
 pub fn main() {
     let mut pre_state = read::<BeaconState>();

@@ -9,4 +9,4 @@ openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", fea
 
 
 # Ream dependencies
-ream-consensus = { git  = "https://github.com/ReamLabs/ream.git", package = "ream-consensus-beacon", features = ["zkvm"] }
+ream-consensus = { git  = "https://github.com/ReamLabs/ream.git", rev = "2a43d55", package = "ream-consensus"}
