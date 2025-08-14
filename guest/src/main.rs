@@ -1,15 +1,9 @@
 // src/main.rs
-use openvm::io::{read, reveal_u32};
+use openvm::io::read;
+use ream_consensus::{attestation::Attestation, electra::beacon_state::BeaconState};
 
-fn main() {
-    let n: u64 = read();
-    let mut a: u64 = 0;
-    let mut b: u64 = 1;
-    for _ in 0..n {
-        let c: u64 = a.wrapping_add(b);
-        a = b;
-        b = c;
-    }
-    reveal_u32(a as u32, 0);
-    reveal_u32((a >> 32) as u32, 1);
+pub fn main() {
+    let mut pre_state = read::<BeaconState>();
+    let attestation = read::<Attestation>();
+    let _ = pre_state.process_attestation(&attestation);
 }
