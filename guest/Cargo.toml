@@ -5,8 +5,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", features = ["std"] }
-
+openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", features = [
+    "std",
+] }
 
 # Ream dependencies
-ream-consensus = { git  = "https://github.com/ReamLabs/ream.git", rev = "2a43d55", package = "ream-consensus"}
+ream-consensus = { git = "https://github.com/ReamLabs/ream.git", rev = "2a43d55", package = "ream-consensus" }
+
+[patch.crates-io]
+ethereum_hashing = { git = "https://github.com/ReamLabs/ethereum_hashing", rev = "c14a9ad96436e6b8b631faf49a3666e4558b71ae" }

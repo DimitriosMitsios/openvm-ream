@@ -36,5 +36,5 @@ serde = "1.0"
 opt-level = 3
 
 [patch.crates-io]
-ethereum_hashing = { git = "https://github.com/ReamLabs/ethereum_hashing" }
-ssz_types = { git = "https://github.com/ReamLabs/ssz_types", branch = "magic-extended-list" } # Extends 2^29 to 2^40 list root
+ethereum_hashing = { git = "https://github.com/ReamLabs/ethereum_hashing", rev = "c14a9ad96436e6b8b631faf49a3666e4558b71ae" }
+ssz_types = { git = "https://github.com/ReamLabs/ssz_types", branch = "magic-extended-list" }                                 # Extends 2^29 to 2^40 list root
