@@ -1,81 +1,38 @@
-// THE FOLLOWING CODE IS A MIXTURE OF JUN'S ERE-REAM AND OPENVM SDK EXAMPLESS sdk_app.rs. Formatting of the input is borrowed from ream's examples.
-
-// ANCHOR: dependencies
-use std::{env, fs, sync::Arc};
+use clap::Parser;
+use eyre::Result;
+use openvm_benchmarks_prove::util::BenchmarkCli;
+use openvm_circuit::arch::instructions::exe::VmExe;
+use openvm_rv32im_circuit::Rv32ImConfig;
+use openvm_rv32im_transpiler::{
+    Rv32ITranspilerExtension, Rv32IoTranspilerExtension, Rv32MTranspilerExtension,
+};
+use openvm_sdk::StdIn;
+use openvm_stark_sdk::{bench::run_with_metric_collection, p3_baby_bear::BabyBear};
+use openvm_transpiler::{transpiler::Transpiler, FromElf};
 
 use ream_consensus::{attestation::Attestation, electra::beacon_state::BeaconState};
+use ream_lib::{file::ssz_from_file, input::OperationInput, ssz::from_ssz_bytes};
 
-use eyre::Result;
-use openvm::platform::memory::MEM_SIZE;
-use openvm_build::GuestOptions;
-use openvm_sdk::{
-    Sdk, StdIn,
-    config::{AppConfig, SdkVmConfig},
-    prover::AppProver,
-};
-use openvm_stark_sdk::config::{FriParameters, baby_bear_poseidon2::BabyBearPoseidon2Engine};
-use openvm_transpiler::elf::Elf;
-use serde::{Deserialize, Serialize};
+fn main() -> Result<()> {
+    let args = BenchmarkCli::parse();
 
-// ANCHOR_END: dependencies
+    let config = Rv32ImConfig::default();
+    let elf = args.build_bench_program("attestation", &config, None)?;
+    let exe = VmExe::from_elf(
+        elf,
+        Transpiler::<BabyBear>::default()
+            .with_extension(Rv32ITranspilerExtension)
+            .with_extension(Rv32MTranspilerExtension)
+            .with_extension(Rv32IoTranspilerExtension),
+    )?;
 
-#[allow(dead_code, unused_variables)]
-fn read_elf() -> Result<(), Box<dyn std::error::Error>> {
-    // ANCHOR: read_elf
-    // 2b. Load the ELF from a file
-    let elf_bytes = fs::read("your_path_to_elf")?; // I don't know the elf path
-    let elf = Elf::decode(&elf_bytes, MEM_SIZE as u32)?;
-    // ANCHOR_END: read_elf
-    Ok(())
-}
-fn main() -> eyre::Result<()> {
-    // ANCHOR: vm_config
-    let vm_config = SdkVmConfig::builder()
-        .system(Default::default())
-        .rv32i(Default::default())
-        .rv32m(Default::default())
-        .io(Default::default())
-        .build();
-    // ANCHOR_END: vm_config
-
-    /// to import example guest code in crate replace `target_path` for:
-    /// ```
-    /// use std::path::PathBuf;
-    ///
-    /// let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).to_path_buf();
-    /// path.push("guest/fib");
-    /// let target_path = path.to_str().unwrap();
-    /// ```
-    // ANCHOR: build
-    // 1. Build the VmConfig with the extensions needed.
-    let sdk = Sdk::new();
-
-    // 2a. Build the ELF with guest options and a target filter.
-    let target_path = "../..";
-    let elf = sdk.build(GuestOptions::default(), target_path, &Default::default())?;
-    // ANCHOR_END: build
-
-    // Set up zkVM instance by cargo feature flags.
-    // let zkvm = zkvms::new_zkvm(ProverResourceType::Cpu)?;
-
-    // Read inputs from files.
-    let pre_state: BeaconState = utils::read_file(
-        &std::path::PathBuf::from(env::var("CARGO_MANIFEST_DIR")?)
-            .join("../../assets/one_basic_attestation/pre.ssz_snappy"),
-    );
-    let attestation: Attestation = utils::read_file(
-        &std::path::PathBuf::from(env::var("CARGO_MANIFEST_DIR")?)
-            .join("../../assets/one_basic_attestation/attestation.ssz_snappy"),
-    );
-
-    // ANCHOR: transpilation
-    // 3. Transpile the ELF into a VmExe
-    let exe = sdk.transpile(elf, vm_config.transpiler())?;
-    // ANCHOR_END: transpilation
-
-    // ANCHOR: execution
-    // 4. Format your input into StdIn
-    // TODO
-
-    Ok(())
+    run_with_metric_collection("OUTPUT_PATH", || -> Result<()> {
+        let pre_state_ssz_bytes: Vec<u8> = ssz_from_file("~/Documents/Projects/epf6/openvm-ream/assets/one_basic_attestation/pre.ssz_snappy");
+        let pre_state: BeaconState = from_ssz_bytes(&pre_state_ssz_bytes).unwrap();
+        let attestation: Attestation = OperationInput::Attestation(ssz_from_file(input_path));
+        let mut stdin = StdIn::default();
+        stdin.write(&pre_state);
+        stdin.write(&attestation);
+        args.bench_from_exe("fibonacci_program", config, exe, stdin);
+    })
 }

@@ -1,11 +1,13 @@
 [workspace]
-members = ["host", "guest", "utils"]
+members = ["host", "utils", "lib"]
+resolver = "3" # If using a virtual workspace, the version should be specified in the [workspace] table
 
 [workspace.package]
 name = "openvm-ream"
 version = "0.1.0"
 edition = "2021"
-#rust-version = "1.85"
+rust-version = "1.85"
+
 [workspace.dependencies]
 
 # OpenVM
@@ -17,12 +19,20 @@ openvm-circuit = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.2
 openvm-stark-sdk = { git = "https://github.com/openvm-org/stark-backend.git", tag = "v1.1.0" }
 openvm-build = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.2.0", default-features = false }
 openvm-transpiler = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.2.0", default-features = false }
-
+openvm-benchmarks-prove = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.2.0", default-features = false }
+openvm-rv32im-circuit = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.2.0", default-features = false }
+openvm-rv32im-transpiler = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.2.0", default-features = false }
 
 # Ream dependencies
 ream-consensus = { git = "https://github.com/syjn99/ream", package = "ream-consensus", rev = "50d148b9b0f6f6064dbe3803515f1e10ead93d42", features = [
     "zkvm",
 ] }
+
+# Miscellaneous dependencies for lib
+tree_hash = "0.10"
+tree_hash_derive = "0.10"
+ethereum_ssz = "0.9"
+tracing = "0.1"
 
 # Local dependencies
 utils = { path = "utils" }

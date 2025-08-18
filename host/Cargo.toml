@@ -11,9 +11,13 @@ openvm-circuit.workspace = true
 openvm-stark-sdk.workspace = true
 openvm-build.workspace = true
 openvm-transpiler.workspace = true
+openvm-benchmarks-prove.workspace = true
+openvm-rv32im-circuit.workspace = true
+openvm-rv32im-transpiler.workspace = true
 
 # Ream dependencies
 ream-consensus = { workspace = true }
+ream-lib = { path = "../lib" }
 
 # Local dependencies
 utils.workspace = true
@@ -21,3 +25,8 @@ utils.workspace = true
 # Miscellaneous dependencies
 eyre.workspace = true
 serde.workspace = true
+clap = { version = "4.0", features = ["derive", "env"] }
+
+[patch.crates-io]
+ethereum_hashing = { git = "https://github.com/ReamLabs/ethereum_hashing", rev = "c14a9ad96436e6b8b631faf49a3666e4558b71ae" }
+ssz_types = { git = "https://github.com/ReamLabs/ssz_types", branch = "magic-extended-list" } # Extends 2^29 to 2^40 list root
