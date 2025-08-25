@@ -12,6 +12,7 @@ use ream_lib::{ssz::from_ssz_bytes};
 // }
 
 pub fn main() {
+
     let bytes: Vec<u8> = read_vec();
     let arr: [u8;8] = bytes.try_into().unwrap();
     let pre_state_len = u64::from_le_bytes(arr) as usize;

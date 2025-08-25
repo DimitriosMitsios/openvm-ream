@@ -22,7 +22,7 @@ p3-baby-bear.workspace = true
 
 # Ream dependencies
 ream-consensus = { workspace = true }
-ream-lib = { path = "../lib" }
+ream-lib = { workspace = true }
 
 # Local dependencies
 utils.workspace = true

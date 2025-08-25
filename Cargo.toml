@@ -45,6 +45,7 @@ tracing = "0.1"
 
 # Local dependencies
 utils = { path = "utils" }
+ream-lib = { path = "lib" }
 
 # Miscellaneous dependencies
 eyre = "0.6"
