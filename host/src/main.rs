@@ -10,13 +10,20 @@ use openvm_rv32im_circuit::Rv32ImConfig;
 use openvm_rv32im_transpiler::{
     Rv32ITranspilerExtension, Rv32IoTranspilerExtension, Rv32MTranspilerExtension,
 };
-use openvm_sdk::{config::SdkVmConfig, StdIn, Sdk};
+use openvm_sdk::{config::SdkVmConfig, StdIn, Sdk, F};
 use openvm_stark_sdk::{bench::run_with_metric_collection, p3_baby_bear::BabyBear};
 use openvm_transpiler::{transpiler::Transpiler, FromElf, elf::Elf};
 
 use ream_consensus::{attestation::{self, Attestation}, electra::beacon_state::BeaconState};
-use ream_lib::{file::ssz_from_file, input::OperationInput, ssz::from_ssz_bytes};
 
+// Dependencies for testing deserialization
+use std::{
+    collections::{HashMap, VecDeque},
+};
+use serde::{Deserialize, Serialize};
+use openvm_stark_backend::p3_field::FieldAlgebra;
+use p3_monty_31::MontyField31;
+use p3_baby_bear::BabyBearParameters;
 fn read_elf() -> Result <(), Box<dyn std::error::Error>> {
     let elf_bytes = fs::read("../guest")?;
     let elf = Elf::decode(&elf_bytes, MEM_SIZE as u32)?;
@@ -62,16 +69,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &std::path::PathBuf::from(env::var("CARGO_MANIFEST_DIR")?)
             .join("../assets/one_basic_attestation/attestation.ssz_snappy"),
     );
+
     let mut stdin = StdIn::default();
+    let pre_state_words = openvm::serde::to_vec(&pre_state).unwrap();
+    let pre_state_bytes: Vec<u8> = pre_state_words.iter().flat_map(|w| w.to_le_bytes()).collect();
+    let attestation_words = openvm::serde::to_vec(&attestation).unwrap();
+    let attestation_bytes: Vec<u8> = attestation_words.iter().flat_map(|w| w.to_le_bytes()).collect();
+    let pre_state_len_bytes: Vec<u8> = pre_state_bytes.len().to_be_bytes().to_vec();
+    // let pre_field_data: Vec<MontyField31<BabyBearParameters>> = pre_bytes.iter().map(|b| F::from_canonical_u8(*b)).collect();
+    // let stdin.push_back(pre_field_data);
 
-    stdin.write(&pre_state);
-    stdin.write(&attestation);
+
+    stdin.write_bytes(&pre_state_len_bytes);
+    stdin.write_bytes(&pre_state_bytes);
+    stdin.write_bytes(&attestation_bytes);
 
 
-    // Run the benchmark
+    // // Run the benchmark
 
     let output = sdk.execute(exe.clone(), vm_config.clone(), stdin.clone());
 
-    println!("public values output: {:?}", output);
+    // println!("public values output: {:?}", output);
     Ok(())
 }

@@ -14,6 +14,11 @@ openvm-transpiler.workspace = true
 openvm-benchmarks-prove.workspace = true
 openvm-rv32im-circuit.workspace = true
 openvm-rv32im-transpiler.workspace = true
+openvm-stark-backend = {workspace = true}
+
+# Plonky dependencies
+p3-monty-31.workspace = true
+p3-baby-bear.workspace = true
 
 # Ream dependencies
 ream-consensus = { workspace = true }
