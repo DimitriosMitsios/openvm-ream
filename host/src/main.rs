@@ -1,8 +1,9 @@
 use clap::Parser;
 use eyre::Result;
+use openvm::platform::print;
 use openvm_build::GuestOptions;
 use std::path::{self, Path, PathBuf};
-use std::{fs, env};
+use std::{fs, env, sync::Arc};
 use openvm::platform::memory::MEM_SIZE;
 use openvm_benchmarks_prove::util::BenchmarkCli;
 use openvm_circuit::arch::instructions::exe::VmExe;
@@ -11,7 +12,7 @@ use openvm_rv32im_transpiler::{
     Rv32ITranspilerExtension, Rv32IoTranspilerExtension, Rv32MTranspilerExtension,
 };
 use openvm_sdk::{config::{SdkVmConfig, AppConfig}, StdIn, Sdk, F};
-use openvm_stark_sdk::{bench::run_with_metric_collection, p3_baby_bear::BabyBear, config::FriParameters};
+use openvm_circuit::openvm_stark_sdk::{bench::run_with_metric_collection, p3_baby_bear::BabyBear, config::FriParameters};
 use openvm_transpiler::{transpiler::Transpiler, FromElf, elf::Elf};
 
 use ream_consensus::{attestation::{self, Attestation}, electra::beacon_state::BeaconState};
@@ -102,6 +103,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_fri_params = FriParameters::standard_with_100_bits_conjectured_security(app_log_blowup);
     let app_config = AppConfig::new(app_fri_params, vm_config);
 
+    // 7. Commit the exe
+    println!("Committing app exe -- START");
+    let app_committed_exe = sdk.commit_app_exe(app_fri_params, exe)?;
+    println!("Committing app exe -- END");
+
+    // 8. Generate an AppProvingKey
+    println!("Generating AppProvingKey -- START");
+    let app_pk = Arc::new(sdk.app_keygen(app_config)?);
+    println!("Generating AppProvingKey -- END");
+
+    // 9a. Generate a proof
+    println!("Generating proof -- START");
+    let proof = sdk.generate_app_proof(app_pk.clone(), app_committed_exe.clone(), stdin.clone())?;
+    println!("Generating proof -- END");
+
+    // 10. Verify your program
+    println!("Verifying proof -- START");
+    let app_vk = app_pk.get_app_vk();
+    sdk.verify_app_proof(&app_vk, &proof)?;
+    println!("Verifying proof -- END");
 
     Ok(())
 }
