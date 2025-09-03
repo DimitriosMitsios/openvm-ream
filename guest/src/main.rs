@@ -23,4 +23,13 @@ pub fn main() {
     attestation_bytes = read_vec();
     let attestation: Attestation = from_ssz_bytes(&attestation_bytes).unwrap();
     let _ = pre_state.process_attestation(&attestation);
+
+    let mut hash = Sha256::new();
+    hash.update(&pre_state);
+    let digest: [u8, 32] = hash.finalize().into();
+    openvm::io::reveal_bytes(&digest);
+
+    // hash.update(pre_state_ssz_bytes.as_slice());
+    // let new_state_root = hash.finalize();
+    // println!("new_state_root: {}", new_state_root);
 }
