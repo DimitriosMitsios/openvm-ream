@@ -1,17 +1,10 @@
 use clap::Parser;
-// use openvm_circuit::system::memory::tree::public_values::extract_public_values;
-use openvm_circuit::system::memory::merkle::public_values::extract_public_values;
 use tracing::{error, info};
 use eyre::Result;
 use openvm_build::GuestOptions;
-use core::num;
 use std::path::{PathBuf};
-use std::{env, sync::Arc};
-use openvm_sdk::{config::{SdkVmConfig, AppConfig}, StdIn, Sdk};
-use openvm_circuit::{
-    arch::VmExecutor,
-    openvm_stark_sdk::{config::FriParameters}
-};
+use std::env;
+use openvm_sdk::{StdIn, Sdk, prover::verify_app_proof};
 use ream_lib::{file::ssz_from_file, input::OperationInput, ssz::from_ssz_bytes};
 use ream_consensus::{
     bls_to_execution_change::SignedBLSToExecutionChange,
@@ -62,106 +55,72 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         info!("[{operation_name}] Test case: {test_case}");
 
-        let vm_config = SdkVmConfig::builder()
-            .system(Default::default())
-            .rv32i(Default::default())
-            .rv32m(Default::default())
-            .io(Default::default())
-            .build();
-
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("../guest");
 
         // Build the ELF file
 
-        let sdk = Sdk::new();
+        let sdk = Sdk::standard();
         let guest_opts = GuestOptions::default();
         let target_path = "../guest";
         let elf = sdk.build(
             guest_opts,
-            &vm_config,
             target_path,
-            &Default::default(),
+            &None,
             None,
         )?;
-
-        // Transpile the ELF into VmExe
-
-        let exe = sdk.transpile(elf, vm_config.transpiler())?;
 
         // Input to stdin
 
 
         let case_dir = &base_dir.join(test_case);
-        let input = into_vec(prepare_input(&case_dir, &operation_name));
+        let input = prepare_input(&case_dir, &operation_name);
+        let input_vec = into_vec(&input);
         let pre_state_ssz_bytes: Vec<u8> = ssz_from_file(&case_dir.join("pre.ssz_snappy"));
         let pre_state_ssz_bytes_len: Vec<u8> = pre_state_ssz_bytes.len().to_be_bytes().to_vec();
 
-        // let pre_state_path = &std::path::PathBuf::from(env::var("CARGO_MANIFEST_DIR")?)
-        //         .join("../assets/one_basic_attestation/pre.ssz_snappy");
-
-        // let attestation_path: &PathBuf = &std::path::PathBuf::from(env::var("CARGO_MANIFEST_DIR")?)
-        //         .join("../assets/one_basic_attestation/attestation.ssz_snappy");
-
         let mut stdin = StdIn::default();
-        // let pre_state_bytes: Vec<u8> =ssz_from_file(&pre_state_path); // pre_state_words.iter().flat_map(|w| w.to_le_bytes()).collect();
-        // let attestation_bytes: Vec<u8> = ssz_from_file(&attestation_path); // attestation_words.iter().flat_map(|w| w.to_le_bytes()).collect();
-        // let pre_state_len_bytes: Vec<u8> = pre_state_bytes.len().to_be_bytes().to_vec();
-
 
         stdin.write_bytes(&pre_state_ssz_bytes_len);
         stdin.write_bytes(&pre_state_ssz_bytes);
-        stdin.write_bytes(&input);
+        stdin.write_bytes(&input_vec);
 
 
-        // // Run the benchmark
-        let vm = VmExecutor::new(vm_config);
-        let final_memory = vm.execute(exe, stdin)?;
-        let memory = final_memory.as_ref().unwrap(); // &MemoryImage
-        let num_pub_values = 32; // guest reveals 32-bytes digest
-        let public_values = extract_public_values( num_pub_values, final_memory);
-        let bytes = public_values.as_slice();
-
-        let output = sdk.execute(exe.clone(), vm_config.clone(), stdin.clone());
+        let output = sdk.execute(elf.clone(), stdin.clone())?;
         println!("public values output: {:?}", output);
 
-        // ANCHOR: proof_generation
-        // 6. Set app configuration
-        let app_log_blowup = 2;
-        let app_fri_params = FriParameters::standard_with_100_bits_conjectured_security(app_log_blowup);
-        let app_config = AppConfig::new(app_fri_params, vm_config);
+        // [!region proof_generation]
+        // 5. Generate an app proof.
+        let mut prover = sdk.app_prover(elf)?.with_program_name("test_program");
+        let proof = prover.prove(stdin)?;
+        // [!endregion proof_generation]
 
-        // 7. Commit the exe
-        println!("Committing app exe -- START");
-        let app_committed_exe = sdk.commit_app_exe(app_fri_params, exe)?;
-        println!("Committing app exe -- END");
-
-        // 8. Generate an AppProvingKey
-        println!("Generating AppProvingKey -- START");
-        let app_pk = Arc::new(sdk.app_keygen(app_config)?);
-        println!("Generating AppProvingKey -- END");
-
-        // //9a. Generate a proof
-        // println!("Generating proof -- START");
-        // let proof = sdk.generate_app_proof(app_pk.clone(), app_committed_exe.clone(), stdin.clone())?;
-        // println!("Generating proof -- END");
-
-        // // 10. Verify your program
-        // println!("Verifying proof -- START");
-        // let app_vk = app_pk.get_app_vk();
-        // sdk.verify_app_proof(&app_vk, &proof)?;
-        // println!("Verifying proof -- END");
+        // [!region verification]
+        // 6. Do this once to save the app_vk, independent of the proof.
+        let (_app_pk, app_vk) = sdk.app_keygen();
+        // 7. Verify your program.
+        verify_app_proof(&app_vk, &proof)?;
+        // [!endregion verification]
 
         // Compare proofs against references (consensus-spec-tests or recompute on host)
+        if output.len() != 32 {
+            return Err("unexpected public values length".into());
+        }
 
+        let new_state_root_hash: [u8; 32] = output
+            .as_slice()
+            .try_into()
+            .expect("checked length; conversion can't fail");
+
+        // Compare state root hash to specs
         if compare_specs {
             info!("Comparing the root against consensus-spec-tests post_state");
-            assert_state_root_matches_specs(&new_state_root, &pre_state_ssz_bytes, &case_dir);
+            assert_state_root_matches_specs(&new_state_root_hash.into(), &pre_state_ssz_bytes, &case_dir);
         }
 
         if compare_recompute {
             info!("Comparing the root by recomputing on host");
-            assert_state_root_matches_recompute(&new_state_root, &pre_state_ssz_bytes, &input);
+            assert_state_root_matches_recompute(&new_state_root_hash.into(), &pre_state_ssz_bytes, &input);
         }
     }
 
@@ -334,7 +293,7 @@ fn assert_state_root_matches_recompute(
     info!("Execution is correct! State roots match host's recomputed state root.");
 }
 
-fn into_vec(op: OperationInput) -> Vec<u8> {
+fn into_vec(op: &OperationInput) -> Vec<u8> {
     match op {
         OperationInput::Attestation(v)
         | OperationInput::AttesterSlashing(v)
@@ -345,6 +304,6 @@ fn into_vec(op: OperationInput) -> Vec<u8> {
         | OperationInput::ProposerSlashing(v)
         | OperationInput::SyncAggregate(v)
         | OperationInput::SignedVoluntaryExit(v)
-        | OperationInput::ExecutionPayload(v) => v,
+        | OperationInput::ExecutionPayload(v) => v.to_vec(),
     }
 }

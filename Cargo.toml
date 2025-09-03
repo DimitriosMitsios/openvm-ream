@@ -11,18 +11,18 @@ rust-version = "1.85"
 [workspace.dependencies]
 
 # OpenVM
-openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", features = [
+openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", features = [
     "std",
 ] }
-openvm-sdk = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", default-features = false }
-openvm-circuit = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", default-features = false }
+openvm-sdk = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", default-features = false }
+openvm-circuit = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", default-features = false }
 openvm-stark-sdk = { git = "https://github.com/openvm-org/stark-backend.git", tag = "v1.1.0" }
-openvm-build = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", default-features = false }
-openvm-transpiler = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", default-features = false }
-openvm-benchmarks-prove = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", default-features = false }
-openvm-rv32im-circuit = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", default-features = false }
-openvm-rv32im-transpiler = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.3.0", default-features = false }
-openvm-stark-backend = { git = "https://github.com/openvm-org/stark-backend.git", tag = "v1.1.0", default-features = false }
+openvm-build = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", default-features = false }
+openvm-transpiler = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", default-features = false }
+openvm-benchmarks-prove = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", default-features = false }
+openvm-rv32im-circuit = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", default-features = false }
+openvm-rv32im-transpiler = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", default-features = false }
+openvm-stark-backend = { git = "https://github.com/openvm-org/stark-backend.git", tag = "v1.2.0", default-features = false }
 
 # Plonky dependencies
 p3-monty-31 = { git = "https://github.com/Plonky3/Plonky3.git", rev = "539bbc84085efb609f4f62cb03cf49588388abdb" }
