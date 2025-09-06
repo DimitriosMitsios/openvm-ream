@@ -5,7 +5,8 @@ use openvm_build::GuestOptions;
 use std::path::{PathBuf};
 use std::env;
 use openvm_sdk::{StdIn, Sdk, prover::verify_app_proof};
-use ream_lib::{file::ssz_from_file, input::OperationInput, ssz::from_ssz_bytes};
+use ream_lib::{file::ssz_from_file, input::OperationInput, ssz::{from_ssz_bytes, }};
+use ethereum_ssz_compat::Encode;
 use ream_consensus::{
     bls_to_execution_change::SignedBLSToExecutionChange,
     deposit::Deposit,
@@ -16,6 +17,11 @@ use ream_consensus::{
     attestation::Attestation, attester_slashing::AttesterSlashing
 };
 use tree_hash::{Hash256, TreeHash};
+use hex::encode; // encodes in hexadecimal format an input in of Vec<u8> type e.g. println!("hex: 0x{}", encode(&pre_state));
+
+// Dependencies for writing files
+use std::fs::File;
+use std::io::Write;
 
 // Dependencies for setup_logs
 mod cli;
@@ -36,7 +42,7 @@ use cli::{fork::Fork, operation::OperationName};
     compare_specs: bool,
 
     /// Verify the correctness of the state root by recomputing on the host
-    #[clap(long, default_value_t = true)]
+    #[clap(long, default_value_t = false)]
     compare_recompute: bool,
 
     #[clap(long)]
@@ -77,30 +83,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let input = prepare_input(&case_dir, &operation_name);
         let input_vec = into_vec(&input);
         let pre_state_ssz_bytes: Vec<u8> = ssz_from_file(&case_dir.join("pre.ssz_snappy"));
-        let pre_state_ssz_bytes_len: Vec<u8> = pre_state_ssz_bytes.len().to_be_bytes().to_vec();
+        let pre_state: BeaconState = from_ssz_bytes(&pre_state_ssz_bytes).unwrap();
 
         let mut stdin = StdIn::default();
 
-        stdin.write_bytes(&pre_state_ssz_bytes_len);
-        stdin.write_bytes(&pre_state_ssz_bytes);
-        stdin.write_bytes(&input_vec);
-
+        stdin.write(&input);
+        stdin.write(&pre_state);
 
         let output = sdk.execute(elf.clone(), stdin.clone())?;
-        println!("public values output: {:?}", output);
-
-        // [!region proof_generation]
-        // 5. Generate an app proof.
-        let mut prover = sdk.app_prover(elf)?.with_program_name("test_program");
-        let proof = prover.prove(stdin)?;
-        // [!endregion proof_generation]
-
-        // [!region verification]
-        // 6. Do this once to save the app_vk, independent of the proof.
-        let (_app_pk, app_vk) = sdk.app_keygen();
-        // 7. Verify your program.
-        verify_app_proof(&app_vk, &proof)?;
-        // [!endregion verification]
 
         // Compare proofs against references (consensus-spec-tests or recompute on host)
         if output.len() != 32 {
@@ -122,6 +112,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!("Comparing the root by recomputing on host");
             assert_state_root_matches_recompute(&new_state_root_hash.into(), &pre_state_ssz_bytes, &input);
         }
+
+        // [!region proof_generation]
+        // 5. Generate an app proof.
+        // let mut prover = sdk.app_prover(elf)?.with_program_name("test_program");
+        // let proof = prover.prove(stdin)?;
+        // [!endregion proof_generation]
+
+        // [!region verification]
+        // 6. Do this once to save the app_vk, independent of the proof.
+        // let (_app_pk, app_vk) = sdk.app_keygen();
+        // 7. Verify your program.
+        // verify_app_proof(&app_vk, &proof)?;
+        // [!endregion verification]
+
+
     }
 
     Ok(())

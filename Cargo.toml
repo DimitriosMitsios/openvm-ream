@@ -1,5 +1,6 @@
 [workspace]
 members = ["host", "utils", "lib"]
+exclude = ["guest"]
 resolver = "3" # If using a virtual workspace, the version should be specified in the [workspace] table
 
 [workspace.package]

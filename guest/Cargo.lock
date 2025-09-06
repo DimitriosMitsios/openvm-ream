@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "alloy-consensus"
-version = "1.0.29"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1816584b0c17e3ab5781d7044b07d5b884cf8fe005811b4ae2cded266e0e8c87"
+checksum = "d213580c17d239ae83c0d897ac3315db7cda83d2d4936a9823cc3517552f2e24"
 dependencies = [
  "alloy-eips",
  "alloy-primitives",
@@ -55,9 +55,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-eips"
-version = "1.0.29"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82cee87eceefee136d68bba6d7202745c218346f28f0b96ce83b8061c991ddad"
+checksum = "2a15b4b0f6bab47aae017d52bb5a739bda381553c09fb9918b7172721ef5f5de"
 dependencies = [
  "alloy-eip2124",
  "alloy-eip2930",
@@ -137,9 +137,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-tx-macros"
-version = "1.0.29"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81901009f4ebb0fa0d2b37328ddec6ca420ca06289dddd714bc7ee9be3c86d4b"
+checksum = "3b5becb9c269a7d05a2f28d549f86df5a5dbc923e2667eff84fdecac8cda534c"
 dependencies = [
  "alloy-primitives",
  "darling 0.21.3",
@@ -408,9 +408,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.35"
+version = "1.2.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "590f9024a68a8c40351881787f1934dc11afd69090f5edb6831464694d836ea3"
+checksum = "5252b3d2648e5eedbc1a6f501e3c795e07025c1e93bbf8bbdd6eef7f447a6d54"
 dependencies = [
  "find-msvc-tools",
  "shlex",
@@ -800,9 +800,9 @@ dependencies = [
 
 [[package]]
 name = "find-msvc-tools"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e178e4fba8a2726903f6ba98a6d221e76f9c12c650d5dc0e6afdc50677b49650"
+checksum = "7fd99930f64d146689264c637b5af2f0233a933bef0d8570e2526bf9e083192d"
 
 [[package]]
 name = "fixed-hash"
@@ -887,6 +887,7 @@ dependencies = [
  "openvm",
  "ream-consensus",
  "ream-lib",
+ "tree_hash",
 ]
 
 [[package]]

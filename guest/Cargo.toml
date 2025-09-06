@@ -1,9 +1,9 @@
-[workspace]
 [package]
 name = "guest"
 version = "0.1.0"
 edition = "2024"
 resolver = "2"
+
 [dependencies]
 # OpenVM dependencies
 openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", features = [
@@ -11,8 +11,8 @@ openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", fea
 ] }
 
 # Miscellaneous dependencies
-ethereum_ssz = "0.9.0"
-
+ethereum_ssz_compat = {package = "ethereum_ssz", version = "0.9" }
+tree_hash = "0.10"
 # Ream dependencies
 # ream-consensus = { git = "https://github.com/ReamLabs/ream.git", rev = "2a43d55", package = "ream-consensus" }
 ream-consensus = { git = "https://github.com/syjn99/ream", package = "ream-consensus", rev = "50d148b9b0f6f6064dbe3803515f1e10ead93d42", features = [
