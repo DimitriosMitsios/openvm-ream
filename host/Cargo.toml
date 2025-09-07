@@ -37,6 +37,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing = { workspace = true }
 tree_hash = { workspace = true }
 hex = "0.4.3"
+sha2 = "0.10.6"
+
 [patch.crates-io]
 ethereum_hashing = { git = "https://github.com/ReamLabs/ethereum_hashing", rev = "c14a9ad96436e6b8b631faf49a3666e4558b71ae" }
 ssz_types = { git = "https://github.com/ReamLabs/ssz_types", branch = "magic-extended-list" } # Extends 2^29 to 2^40 list root

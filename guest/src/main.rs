@@ -1,7 +1,7 @@
 // src/main.rs
 use openvm::io::{read_vec, read};
 use ream_lib::{input::{self, OperationInput}, ssz::from_ssz_bytes};
-use tree_hash::{TreeHash};
+use tree_hash::{Hash256, TreeHash};
 use ream_consensus::{
     bls_to_execution_change::SignedBLSToExecutionChange,
     deposit::Deposit,
@@ -18,6 +18,9 @@ use ethereum_ssz_compat::Encode;
 use std::fs::File;
 use std::io::Write;
 
+// Dependencies for hashing
+use sha2::{Sha256, Digest};
+use hex::encode;
 // fn deserialize<T: ssz::Decode>(ssz_bytes: &[u8]) -> T {
 //     // eprintln!("{}-{}:{}: {}", "deserialize", std::any::type_name::<T>(), "start", env::cycle_count());
 //     let deserialized = from_ssz_bytes(&ssz_bytes).unwrap();
@@ -25,12 +28,15 @@ use std::io::Write;
 
 //     deserialized
 // }
-
 pub fn main() {
+
 
     let input: OperationInput = read();
     let mut pre_state: BeaconState = read();
     let pre_state_ssz_bytes: Vec<u8> = Encode::as_ssz_bytes(&pre_state);
+    let pre_state_hash: [u8; 32] = Sha256::digest(&pre_state_ssz_bytes).into();
+    println!("guest: pre_state_hash NO OPERATION: 0x{}", encode(&pre_state_hash));
+
     // let mut hash = Sha256::new();
     // hash.update(&pre_state);
     // let digest: [u8; 32] = hash.finalize().into();
@@ -39,6 +45,10 @@ pub fn main() {
         OperationInput::Attestation(ssz_bytes) => {
             let attestation: Attestation = from_ssz_bytes(&ssz_bytes).unwrap();
             let _ = pre_state.process_attestation(&attestation);
+            let processed_state_ssz_bytes = Encode::as_ssz_bytes(&pre_state);
+            let processed_state_hash: [u8; 32] = Sha256::digest(&processed_state_ssz_bytes).into();
+            println!("guest: state hash AFTER OPERATION: 0x{}", encode(&processed_state_hash));
+            println!("guest: state.tree_hash_root: {}", encode(pre_state.tree_hash_root()));
         }
         OperationInput::AttesterSlashing(ssz_bytes) => {
             let attester_slashing: AttesterSlashing = from_ssz_bytes(&ssz_bytes).unwrap();
@@ -79,6 +89,8 @@ pub fn main() {
         }
     }
 
+    let state_hash2 = Sha256::digest(Encode::as_ssz_bytes(&pre_state));
+    println!("guest: state_hash2: 0x{}", encode(&state_hash2));
     // Computing the tree_hash_root of the updated pre_state
     let digest = pre_state.tree_hash_root();
     // let digest = Sha256::digest(&pre_state);
@@ -87,7 +99,10 @@ pub fn main() {
     // let digest: [u8; 32] = hash.finalize().into();
     // println!("guest: digest of pre_state.process: {:?}", digest);
 
+    println!("guest: tree_hash_root of pre_state.process: {:?}", digest.to_vec());
+
     openvm::io::reveal_bytes32(*digest);
+
 }
 
 fn into_vec(op: &OperationInput) -> Vec<u8> {

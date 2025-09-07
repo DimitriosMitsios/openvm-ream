@@ -21,5 +21,10 @@ ream-consensus = { git = "https://github.com/syjn99/ream", package = "ream-conse
 
 ream-lib = { path = "../lib" }
 
+# Miscellaneous dependencies
+sha2 = "0.10.6"
+hex = "0.4.3"
+
 [patch.crates-io]
 ethereum_hashing = { git = "https://github.com/ReamLabs/ethereum_hashing", rev = "c14a9ad96436e6b8b631faf49a3666e4558b71ae" }
+ssz_types = { git = "https://github.com/ReamLabs/ssz_types", branch = "magic-extended-list" } # Extends 2^29 to 2^40 list root

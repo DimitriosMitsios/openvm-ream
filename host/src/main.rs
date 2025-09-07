@@ -2,11 +2,13 @@ use clap::Parser;
 use tracing::{error, info};
 use eyre::Result;
 use openvm_build::GuestOptions;
+use std::hash::Hash;
 use std::path::{PathBuf};
-use std::env;
+use std::{env, hash};
 use openvm_sdk::{StdIn, Sdk, prover::verify_app_proof};
 use ream_lib::{file::ssz_from_file, input::OperationInput, ssz::{from_ssz_bytes, }};
 use ethereum_ssz_compat::Encode;
+use sha2::{Digest, Sha256};
 use ream_consensus::{
     bls_to_execution_change::SignedBLSToExecutionChange,
     deposit::Deposit,
@@ -42,7 +44,7 @@ use cli::{fork::Fork, operation::OperationName};
     compare_specs: bool,
 
     /// Verify the correctness of the state root by recomputing on the host
-    #[clap(long, default_value_t = false)]
+    #[clap(long, default_value_t = true)]
     compare_recompute: bool,
 
     #[clap(long)]
@@ -85,12 +87,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let pre_state_ssz_bytes: Vec<u8> = ssz_from_file(&case_dir.join("pre.ssz_snappy"));
         let pre_state: BeaconState = from_ssz_bytes(&pre_state_ssz_bytes).unwrap();
 
+        // Computing the hash of pre_state before processing the operation
+        let pre_state_hash: [u8; 32] = Sha256::digest(&pre_state_ssz_bytes).into();
+        println!("host: pre_state_hash NO OPERATION: 0x{}", encode(&pre_state_hash));
+
         let mut stdin = StdIn::default();
 
         stdin.write(&input);
         stdin.write(&pre_state);
 
         let output = sdk.execute(elf.clone(), stdin.clone())?;
+        println!("host: output encoded: 0x{}", encode(&output));
+
+        let mut hasher = Sha256::new();
+        hasher.update(&output);
+        let post_state_hash: [u8; 32] = hasher.finalize().into();
+
 
         // Compare proofs against references (consensus-spec-tests or recompute on host)
         if output.len() != 32 {
@@ -98,7 +110,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         let new_state_root_hash: [u8; 32] = output
-            .as_slice()
             .try_into()
             .expect("checked length; conversion can't fail");
 
@@ -249,6 +260,11 @@ fn assert_state_root_matches_recompute(
         OperationInput::Attestation(ssz_bytes) => {
             let attestation: Attestation = from_ssz_bytes(&ssz_bytes).unwrap();
             let _ = state.process_attestation(&attestation);
+            let state_ssz_bytes = Encode::as_ssz_bytes(&state);
+            let state_hash: [u8; 32] = Sha256::digest(&state_ssz_bytes).into();
+            println!("host: state processed inside assert_state_root_matches_recompute: 0x{}", encode(&state_hash));
+            println!("host: state.tree_hash_root in assert_state_root_matches_recompute: {}", encode(state.tree_hash_root()));
+
         }
         OperationInput::AttesterSlashing(ssz_bytes) => {
             let attester_slashing: AttesterSlashing = from_ssz_bytes(&ssz_bytes).unwrap();
