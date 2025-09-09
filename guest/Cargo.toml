@@ -11,7 +11,6 @@ openvm = { git = "https://github.com/openvm-org/openvm.git", tag = "v1.4.0", fea
 ] }
 
 # Miscellaneous dependencies
-ethereum_ssz_compat = {package = "ethereum_ssz", version = "0.9" }
 tree_hash = "0.10"
 # Ream dependencies
 # ream-consensus = { git = "https://github.com/ReamLabs/ream.git", rev = "2a43d55", package = "ream-consensus" }

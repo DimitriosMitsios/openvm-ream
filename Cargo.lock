@@ -1645,7 +1645,6 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "derive_more 2.0.1",
- "ethereum_ssz",
  "eyre",
  "hex",
  "openvm",

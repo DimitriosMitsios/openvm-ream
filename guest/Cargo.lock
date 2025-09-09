@@ -883,7 +883,6 @@ dependencies = [
 name = "guest"
 version = "0.1.0"
 dependencies = [
- "ethereum_ssz",
  "hex",
  "openvm",
  "ream-consensus",

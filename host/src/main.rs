@@ -2,12 +2,10 @@ use clap::Parser;
 use tracing::{error, info};
 use eyre::Result;
 use openvm_build::GuestOptions;
-use std::hash::Hash;
 use std::path::{PathBuf};
-use std::{env, hash};
+use std::{env};
 use openvm_sdk::{StdIn, Sdk, prover::verify_app_proof};
 use ream_lib::{file::ssz_from_file, input::OperationInput, ssz::{from_ssz_bytes, }};
-use ethereum_ssz_compat::Encode;
 use sha2::{Digest, Sha256};
 use ream_consensus::{
     bls_to_execution_change::SignedBLSToExecutionChange,
@@ -19,11 +17,6 @@ use ream_consensus::{
     attestation::Attestation, attester_slashing::AttesterSlashing
 };
 use tree_hash::{Hash256, TreeHash};
-use hex::encode; // encodes in hexadecimal format an input in of Vec<u8> type e.g. println!("hex: 0x{}", encode(&pre_state));
-
-// Dependencies for writing files
-use std::fs::File;
-use std::io::Write;
 
 // Dependencies for setup_logs
 mod cli;
@@ -80,16 +73,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Input to stdin
 
-
         let case_dir = &base_dir.join(test_case);
         let input = prepare_input(&case_dir, &operation_name);
-        let input_vec = into_vec(&input);
         let pre_state_ssz_bytes: Vec<u8> = ssz_from_file(&case_dir.join("pre.ssz_snappy"));
         let pre_state: BeaconState = from_ssz_bytes(&pre_state_ssz_bytes).unwrap();
-
-        // Computing the hash of pre_state before processing the operation
-        let pre_state_hash: [u8; 32] = Sha256::digest(&pre_state_ssz_bytes).into();
-        println!("host: pre_state_hash NO OPERATION: 0x{}", encode(&pre_state_hash));
 
         let mut stdin = StdIn::default();
 
@@ -97,11 +84,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         stdin.write(&pre_state);
 
         let output = sdk.execute(elf.clone(), stdin.clone())?;
-        println!("host: output encoded: 0x{}", encode(&output));
 
         let mut hasher = Sha256::new();
         hasher.update(&output);
-        let post_state_hash: [u8; 32] = hasher.finalize().into();
 
 
         // Compare proofs against references (consensus-spec-tests or recompute on host)
@@ -124,18 +109,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             assert_state_root_matches_recompute(&new_state_root_hash.into(), &pre_state_ssz_bytes, &input);
         }
 
-        // [!region proof_generation]
-        // 5. Generate an app proof.
+        // // [!region proof_generation]
+        // // 5. Generate an app proof.
         // let mut prover = sdk.app_prover(elf)?.with_program_name("test_program");
         // let proof = prover.prove(stdin)?;
-        // [!endregion proof_generation]
+        // // [!endregion proof_generation]
 
-        // [!region verification]
-        // 6. Do this once to save the app_vk, independent of the proof.
+        // // [!region verification]
+        // // 6. Do this once to save the app_vk, independent of the proof.
         // let (_app_pk, app_vk) = sdk.app_keygen();
-        // 7. Verify your program.
+        // // 7. Verify your program.
         // verify_app_proof(&app_vk, &proof)?;
-        // [!endregion verification]
+        // // [!endregion verification]
 
 
     }
@@ -260,10 +245,6 @@ fn assert_state_root_matches_recompute(
         OperationInput::Attestation(ssz_bytes) => {
             let attestation: Attestation = from_ssz_bytes(&ssz_bytes).unwrap();
             let _ = state.process_attestation(&attestation);
-            let state_ssz_bytes = Encode::as_ssz_bytes(&state);
-            let state_hash: [u8; 32] = Sha256::digest(&state_ssz_bytes).into();
-            println!("host: state processed inside assert_state_root_matches_recompute: 0x{}", encode(&state_hash));
-            println!("host: state.tree_hash_root in assert_state_root_matches_recompute: {}", encode(state.tree_hash_root()));
 
         }
         OperationInput::AttesterSlashing(ssz_bytes) => {
@@ -307,24 +288,6 @@ fn assert_state_root_matches_recompute(
 
     let recomputed_state_root = state.tree_hash_root();
 
-    println!("recomputed_state_root: {}", recomputed_state_root);
-    println!("new_state_root: {}", new_state_root);
-
     assert_eq!(*new_state_root, recomputed_state_root);
     info!("Execution is correct! State roots match host's recomputed state root.");
-}
-
-fn into_vec(op: &OperationInput) -> Vec<u8> {
-    match op {
-        OperationInput::Attestation(v)
-        | OperationInput::AttesterSlashing(v)
-        | OperationInput::BeaconBlock(v)
-        | OperationInput::SignedBLSToExecutionChange(v)
-        | OperationInput::Deposit(v)
-        | OperationInput::BeaconBlockBody(v)
-        | OperationInput::ProposerSlashing(v)
-        | OperationInput::SyncAggregate(v)
-        | OperationInput::SignedVoluntaryExit(v)
-        | OperationInput::ExecutionPayload(v) => v.to_vec(),
-    }
 }

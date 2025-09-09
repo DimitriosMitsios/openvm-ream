@@ -4,7 +4,6 @@ exclude = ["guest"]
 resolver = "3" # If using a virtual workspace, the version should be specified in the [workspace] table
 
 [workspace.package]
-name = "openvm-ream"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.85"
