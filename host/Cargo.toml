@@ -35,5 +35,6 @@ derive_more = { version = "2.0.1", features = ["full"]}
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing = { workspace = true }
 tree_hash = { workspace = true }
-hex = "0.4.3"
-sha2 = "0.10.6"
+
+[features]
+perf-metrics = ["openvm-sdk/perf-metrics"]

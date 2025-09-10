@@ -6,7 +6,6 @@ use std::path::{PathBuf};
 use std::{env};
 use openvm_sdk::{StdIn, Sdk, prover::verify_app_proof};
 use ream_lib::{file::ssz_from_file, input::OperationInput, ssz::{from_ssz_bytes, }};
-use sha2::{Digest, Sha256};
 use ream_consensus::{
     bls_to_execution_change::SignedBLSToExecutionChange,
     deposit::Deposit,
@@ -24,7 +23,8 @@ use cli::{fork::Fork, operation::OperationName};
 
 /// The arguments for the command.
 #[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]struct Args {
+#[clap(author, version, about, long_about = None)]
+struct Args {
     /// Argument for STFs
     #[clap(flatten)]
     fork: cli::fork::ForkArgs,
@@ -84,10 +84,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         stdin.write(&pre_state);
 
         let output = sdk.execute(elf.clone(), stdin.clone())?;
-
-        let mut hasher = Sha256::new();
-        hasher.update(&output);
-
 
         // Compare proofs against references (consensus-spec-tests or recompute on host)
         if output.len() != 32 {
