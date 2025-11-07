@@ -29,9 +29,10 @@ $(addprefix run-, $(OPERATIONS)): run-%: $(EXTRACT_DIR)
 	@echo "##################################################"
 	@echo "Running benchmarks for $*..."
 	@echo "##################################################"
-	@NO_COLOR=1 cargo run --release -- -o $* \
+	@NO_COLOR=1 cargo run --release -- \
 			--excluded-cases multi_proposer_index_iterations \
 			--excluded-cases random_with_exits_with_duplicates \
+			block $* \
 			2>&1 | tee $(LOGS_DIR)/execution_$*.log
 	@echo "Execution complete for $*."
 	@$(PARSE_SCRIPT) $*
