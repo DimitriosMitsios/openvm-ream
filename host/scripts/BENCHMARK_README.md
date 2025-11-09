@@ -13,17 +13,16 @@ This script measures the overhead of proof generation by executing a single oper
 - `-t, --type TYPE`: Operation type (`block` or `epoch`, default: `block`)
 - `-o, --operation NAME`: Operation name (default: `attestation`)
 - `-k, --fork FORK`: Ethereum fork version (`electra`, `fulu`, `phase0`, etc., default: `electra`)
-- `-c, --case CASE`: Specific test case name (optional, will use first available if not specified)
 - `-f, --file FILE`: Output file for results summary (default: stdout)
 - `-h, --help`: Show help message
 
 ## Detailed Logs
 
 The script saves detailed execution logs for both runs in the `benchmark_logs/` directory:
-- `{type}_{operation}_{case}_no_proof.log`: Full output from execution without proof generation
-- `{type}_{operation}_{case}_with_proof.log`: Full output from execution with proof generation
+- `{type}_{operation}_no_proof.log`: Full output from execution without proof generation (all test cases)
+- `{type}_{operation}_with_proof.log`: Full output from execution with proof generation (all test cases)
 
-These logs contain all compiler output, execution traces, and other diagnostic information.
+These logs contain all compiler output, execution traces, and other diagnostic information for all available test cases.
 
 ## Block Operations
 
@@ -68,14 +67,14 @@ The following epoch operations are available:
 ./scripts/benchmark_proof_overhead.sh -t epoch -o justification_and_finalization
 ```
 
-### Benchmark with a specific test case and save results to file
+### Benchmark with output file
 ```bash
-./scripts/benchmark_proof_overhead.sh -t block -o attestation -c first_valid_attestation -f results.txt
+./scripts/benchmark_proof_overhead.sh -t block -o attestation -f results.txt
 ```
 
-### Benchmark block_header operation
+### Benchmark on different fork (e.g., fulu)
 ```bash
-./scripts/benchmark_proof_overhead.sh -t block -o block_header
+./scripts/benchmark_proof_overhead.sh -t block -o block_header -k fulu
 ```
 
 ## Output
@@ -83,24 +82,37 @@ The following epoch operations are available:
 The script produces output in the following format:
 
 ```
+=== Proof Generation Overhead Benchmark ===
+Operation: block attestation
+Fork: electra
+Running all available test cases...
+
+[1/2] Running WITHOUT proof generation...
+✓ Completed in 489.2s
+Detailed log saved to: ./benchmark_logs/block_attestation_no_proof.log
+
+[2/2] Running WITH proof generation...
+✓ Completed in 5234.8s
+Detailed log saved to: ./benchmark_logs/block_attestation_with_proof.log
+
 === Results ===
 Operation: block attestation
-Test case: invalid_correct_attestation_included_after_max_inclusion_slot
+Fork: electra
 
-Execution time WITHOUT proof generation: 5.3s (5300ms)
-Execution time WITH proof generation:    240.7s (240700ms)
+Execution time WITHOUT proof generation: 489.2s (489200ms)
+Execution time WITH proof generation:    5234.8s (5234800ms)
 
-Proof generation overhead:     235.4s (235400ms)
-Multiplicative overhead:       45.42x
+Proof generation overhead:     4745.6s (4745600ms)
+Multiplicative overhead:       10.70x
 
 === Summary ===
-Baseline (no proof):  5.3s
-With proof:          240.7s
-Overhead:            235.4s (45.42x)
+Baseline (no proof):  489.2s
+With proof:          5234.8s
+Overhead:            4745.6s (10.70x)
 
 === Detailed Logs ===
-Without proof: ./benchmark_logs/block_attestation_invalid_correct_attestation_included_after_max_inclusion_slot_no_proof.log
-With proof:    ./benchmark_logs/block_attestation_invalid_correct_attestation_included_after_max_inclusion_slot_with_proof.log
+Without proof: ./benchmark_logs/block_attestation_no_proof.log
+With proof:    ./benchmark_logs/block_attestation_with_proof.log
 ```
 
 ## Requirements
@@ -111,12 +123,12 @@ With proof:    ./benchmark_logs/block_attestation_invalid_correct_attestation_in
 
 ## Notes
 
-- The script uses `--excluded-cases` to run only on a single test case
+- The script runs **all available test cases** for the specified operation and fork
 - Both runs use the `--release` profile for optimal performance
 - The first run (without proof generation) establishes the baseline
 - The second run (with proof generation) includes all keygen and proof generation operations
 - Execution times are measured using nanosecond-precision timestamps
 - **Multiplicative overhead (multiplier)** is calculated as: `With Proof Time / Baseline Time`
-  - For example, if baseline is 5s and with proof is 240.7s, the multiplier is 48.14x
-  - This is more intuitive than percentage for large overheads (e.g., 4814% becomes 48.14x)
-- Detailed execution logs are preserved in the `benchmark_logs/` directory for later analysis
+  - For example, if baseline is 489.2s and with proof is 5234.8s, the multiplier is 10.70x
+  - This is more intuitive than percentage for large overheads
+- Detailed execution logs are preserved in the `benchmark_logs/` directory for later analysis of individual test cases

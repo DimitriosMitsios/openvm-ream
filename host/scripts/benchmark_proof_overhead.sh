@@ -16,7 +16,6 @@ NC='\033[0m' # No Color
 OPERATION_TYPE="block"
 OPERATION_NAME="attestation"
 FORK="electra"
-TEST_CASE=""
 OUTPUT_FILE=""
 LOGS_DIR="./benchmark_logs"
 
@@ -30,7 +29,6 @@ usage() {
     echo "                           Block ops: attestation, attester_slashing, block_header, etc."
     echo "                           Epoch ops: justification_and_finalization, inactivity_updates, etc."
     echo "  -k, --fork FORK          Ethereum fork: 'electra', 'fulu', 'phase0', etc. (default: electra)"
-    echo "  -c, --case CASE          Specific test case name (optional, will use first test case if not provided)"
     echo "  -f, --file FILE          Output file for results (default: stdout)"
     echo "  -h, --help              Show this help message"
     echo ""
@@ -55,10 +53,6 @@ while [[ $# -gt 0 ]]; do
             FORK="$2"
             shift 2
             ;;
-        -c|--case)
-            TEST_CASE="$2"
-            shift 2
-            ;;
         -f|--file)
             OUTPUT_FILE="$2"
             shift 2
@@ -80,7 +74,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOST_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo -e "${BLUE}=== Proof Generation Overhead Benchmark ===${NC}"
-echo -e "${BLUE}Operation: ${OPERATION_TYPE} ${OPERATION_NAME} (fork: ${FORK})${NC}"
+echo -e "${BLUE}Operation: ${OPERATION_TYPE} ${OPERATION_NAME}${NC}"
+echo -e "${BLUE}Fork: ${FORK}${NC}"
+echo -e "${BLUE}Running all available test cases...${NC}"
 
 # Create logs directory
 mkdir -p "$LOGS_DIR"
@@ -162,11 +158,10 @@ calculate_multiplier() {
 # Run 1: WITHOUT proof generation
 echo -e "${GREEN}[1/2] Running WITHOUT proof generation...${NC}"
 START_TIME=$(date +%s%N)
-NO_PROOF_LOG="$LOGS_DIR/${OPERATION_TYPE}_${OPERATION_NAME}_${TEST_CASE}_no_proof.log"
+NO_PROOF_LOG="$LOGS_DIR/${OPERATION_TYPE}_${OPERATION_NAME}_no_proof.log"
 cd "$HOST_DIR"
 if NO_COLOR=1 cargo run --release -- \
     --fork "$FORK" \
-    --excluded-cases "$TEST_CASE" \
     "$OPERATION_TYPE" "$OPERATION_NAME" \
     > "$NO_PROOF_LOG" 2>&1; then
     END_TIME=$(date +%s%N)
@@ -185,11 +180,10 @@ echo ""
 # Run 2: WITH proof generation
 echo -e "${GREEN}[2/2] Running WITH proof generation...${NC}"
 START_TIME=$(date +%s%N)
-WITH_PROOF_LOG="$LOGS_DIR/${OPERATION_TYPE}_${OPERATION_NAME}_${TEST_CASE}_with_proof.log"
+WITH_PROOF_LOG="$LOGS_DIR/${OPERATION_TYPE}_${OPERATION_NAME}_with_proof.log"
 cd "$HOST_DIR"
 if NO_COLOR=1 cargo run --release -- \
     --fork "$FORK" \
-    --excluded-cases "$TEST_CASE" \
     --generate-proof \
     "$OPERATION_TYPE" "$OPERATION_NAME" \
     > "$WITH_PROOF_LOG" 2>&1; then
@@ -207,7 +201,7 @@ fi
 echo ""
 echo -e "${BLUE}=== Results ===${NC}"
 echo "Operation: ${OPERATION_TYPE} ${OPERATION_NAME}"
-echo "Test case: ${TEST_CASE}"
+echo "Fork: ${FORK}"
 echo ""
 echo "Execution time WITHOUT proof generation: ${NO_PROOF_TIME_SEC} (${NO_PROOF_TIME}ms)"
 echo "Execution time WITH proof generation:    ${WITH_PROOF_TIME_SEC} (${WITH_PROOF_TIME}ms)"
