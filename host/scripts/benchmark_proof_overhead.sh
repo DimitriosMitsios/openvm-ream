@@ -81,12 +81,6 @@ echo -e "${BLUE}Running all available test cases...${NC}"
 # Create logs directory
 mkdir -p "$LOGS_DIR"
 
-# Prepare output file if specified
-if [[ -n "$OUTPUT_FILE" ]]; then
-    exec 1> >(tee "$OUTPUT_FILE")
-    exec 2>&1
-fi
-
 # Determine the test cases directory structure:
 # For block operations: mainnet/tests/mainnet/{fork}/operations/{operation_name}/pyspec_tests/
 # For epoch operations: mainnet/tests/mainnet/{fork}/epoch_processing/{operation_name}/pyspec_tests/
@@ -179,22 +173,40 @@ echo ""
 
 # Run 2: WITH proof generation
 echo -e "${GREEN}[2/2] Running WITH proof generation...${NC}"
+echo -e "${YELLOW}WARNING: This may take several hours. The process will continue running.${NC}"
 START_TIME=$(date +%s%N)
 WITH_PROOF_LOG="$LOGS_DIR/${OPERATION_TYPE}_${OPERATION_NAME}_with_proof.log"
 cd "$HOST_DIR"
-if NO_COLOR=1 cargo run --release -- \
+
+# Disable any shell timeout for long-running proof generation
+if [[ -n "$TMOUT" ]]; then
+    echo -e "${YELLOW}Note: Disabling shell timeout for proof generation${NC}"
+    TMOUT_SAVED=$TMOUT
+    unset TMOUT
+fi
+
+NO_COLOR=1 cargo run --release -- \
     --fork "$FORK" \
     --generate-proof \
     "$OPERATION_TYPE" "$OPERATION_NAME" \
-    2>&1 | tee "$WITH_PROOF_LOG"; then
+    2>&1 | tee "$WITH_PROOF_LOG"
+
+CARGO_EXIT_CODE=${PIPESTATUS[0]}
+
+# Restore timeout if it was set
+if [[ -n "$TMOUT_SAVED" ]]; then
+    TMOUT=$TMOUT_SAVED
+fi
+
+if [[ $CARGO_EXIT_CODE -eq 0 ]]; then
     END_TIME=$(date +%s%N)
     WITH_PROOF_TIME=$((($END_TIME - $START_TIME) / 1000000)) # Convert to milliseconds
     WITH_PROOF_TIME_SEC=$(format_time "$WITH_PROOF_TIME")
     echo -e "${GREEN}✓ Completed in ${WITH_PROOF_TIME_SEC}${NC}"
     echo -e "${BLUE}Detailed log saved to: $WITH_PROOF_LOG${NC}"
 else
-    echo -e "${YELLOW}✗ Failed to run with proof generation${NC}"
-    cat "$WITH_PROOF_LOG"
+    echo -e "${YELLOW}✗ Proof generation exited with code $CARGO_EXIT_CODE${NC}"
+    echo -e "${YELLOW}Check log file for details: $WITH_PROOF_LOG${NC}"
     exit 1
 fi
 
@@ -225,3 +237,27 @@ echo ""
 echo -e "${BLUE}=== Detailed Logs ===${NC}"
 echo "Without proof: $NO_PROOF_LOG"
 echo "With proof:    $WITH_PROOF_LOG"
+
+# Save results to file if specified
+if [[ -n "$OUTPUT_FILE" ]]; then
+    {
+        echo "=== Proof Generation Overhead Benchmark Results ==="
+        echo "Operation: ${OPERATION_TYPE} ${OPERATION_NAME}"
+        echo "Fork: ${FORK}"
+        echo ""
+        echo "Execution time WITHOUT proof generation: ${NO_PROOF_TIME_SEC} (${NO_PROOF_TIME}ms)"
+        echo "Execution time WITH proof generation:    ${WITH_PROOF_TIME_SEC} (${WITH_PROOF_TIME}ms)"
+        echo ""
+        echo "Proof generation overhead:     ${OVERHEAD_SEC} (${OVERHEAD_MS}ms)"
+        echo "Multiplicative overhead:       ${MULTIPLIER}x"
+        echo ""
+        echo "Baseline (no proof):  ${NO_PROOF_TIME_SEC}"
+        echo "With proof:          ${WITH_PROOF_TIME_SEC}"
+        echo "Overhead:            ${OVERHEAD_SEC} (${MULTIPLIER}x)"
+        echo ""
+        echo "Detailed logs:"
+        echo "Without proof: $NO_PROOF_LOG"
+        echo "With proof:    $WITH_PROOF_LOG"
+    } > "$OUTPUT_FILE"
+    echo "Results saved to: $OUTPUT_FILE"
+fi
