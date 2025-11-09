@@ -112,22 +112,6 @@ if [[ -z "$AVAILABLE_CASES" ]]; then
     echo -e "${YELLOW}Error: No test cases found in $OPERATION_DIR${NC}"
     exit 1
 fi
-
-# Use provided test case or get the first available one
-if [[ -z "$TEST_CASE" ]]; then
-    TEST_CASE=$(echo "$AVAILABLE_CASES" | head -1)
-    echo -e "${YELLOW}No specific test case provided, using first available: $TEST_CASE${NC}"
-else
-    # Verify the test case exists
-    if [[ ! -d "$OPERATION_DIR/$TEST_CASE" ]]; then
-        echo -e "${YELLOW}Error: Test case '$TEST_CASE' not found${NC}"
-        echo "Available test cases:"
-        ls "$OPERATION_DIR" | head -10
-        exit 1
-    fi
-fi
-
-echo -e "${BLUE}Test case: ${TEST_CASE}${NC}"
 echo ""
 
 # Function to format milliseconds as seconds
