@@ -4,6 +4,7 @@ use eyre::Result;
 use openvm_build::GuestOptions;
 use std::path::PathBuf;
 use openvm_sdk::{StdIn, Sdk};
+use openvm_sdk::prover::verify_app_proof;
 use ream_lib::{file::ssz_from_file, input::OperationInput, ssz::{from_ssz_bytes, }};
 use ream_consensus::electra::beacon_state::BeaconState;
 use tree_hash::{Hash256, TreeHash};
@@ -31,20 +32,24 @@ struct Args {
     #[clap(long, default_value_t = true)]
     compare_recompute: bool,
 
+    /// Generate cryptographic proofs for the execution
+    #[clap(long, default_value_t = false)]
+    generate_proof: bool,
+
     #[clap(long)]
     excluded_cases: Vec<String>,
 }
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     setup_log();
 
-    let (fork, operation, excluded_cases, compare_specs, compare_recompute) = parse_args();
+    let (fork, operation, excluded_cases, compare_specs, compare_recompute, generate_proof) = parse_args();
 
     match operation {
         Operation::Block { operation: block_op } => {
-            run_operation(&fork, &block_op, &excluded_cases, compare_specs, compare_recompute)?;
+            run_operation(&fork, &block_op, &excluded_cases, compare_specs, compare_recompute, generate_proof)?;
         }
         Operation::Epoch { operation: epoch_op } => {
-            run_operation(&fork, &epoch_op, &excluded_cases, compare_specs, compare_recompute)?;
+            run_operation(&fork, &epoch_op, &excluded_cases, compare_specs, compare_recompute, generate_proof)?;
         }
     }
 
@@ -57,6 +62,7 @@ fn run_operation<T: OperationHandler>(
     excluded_cases: &[String],
     compare_specs: bool,
     compare_recompute: bool,
+    generate_proof: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (base_dir, test_cases) = operation.load_test_cases(fork);
 
@@ -110,6 +116,21 @@ fn run_operation<T: OperationHandler>(
             info!("Comparing the root by recomputing on host");
             assert_state_root_matches_recompute(&new_state_root_hash.into(), &pre_state_ssz_bytes, &input);
         }
+
+        // Generate cryptographic proof if requested
+        if generate_proof {
+            info!("Generating cryptographic proof for test case: {test_case}");
+            let mut prover = sdk.app_prover(elf.clone())?.with_program_name(&format!("{}_{}", operation, test_case));
+            let proof = prover.prove(stdin.clone())?;
+            info!("Proof generated successfully for test case: {test_case}");
+
+            // Generate app verification keys and verify the proof
+            let (_app_pk, app_vk) = sdk.app_keygen();
+            match verify_app_proof(&app_vk, &proof) {
+                Ok(_) => info!("Proof verified successfully for test case: {test_case}"),
+                Err(e) => info!("Proof verification failed for test case {test_case}: {}", e),
+            }
+        }
     }
 
     Ok(())
@@ -127,7 +148,7 @@ fn setup_log() {
         .init();
 }
 
-fn parse_args() -> (Fork, Operation, Vec<String>, bool, bool) {
+fn parse_args() -> (Fork, Operation, Vec<String>, bool, bool, bool) {
     let args = Args::parse();
 
     (
@@ -136,6 +157,7 @@ fn parse_args() -> (Fork, Operation, Vec<String>, bool, bool) {
         args.excluded_cases,
         args.compare_specs,
         args.compare_recompute,
+        args.generate_proof,
     )
 }
 
@@ -192,3 +214,4 @@ fn assert_state_root_matches_recompute(
     assert_eq!(*new_state_root, recomputed_state_root);
     info!("Execution is correct! State roots match host's recomputed state root.");
 }
+
