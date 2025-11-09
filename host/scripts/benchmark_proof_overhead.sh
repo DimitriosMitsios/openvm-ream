@@ -35,7 +35,7 @@ usage() {
     echo "Examples:"
     echo "  $0 -t block -o attestation"
     echo "  $0 -t epoch -o justification_and_finalization -f results.txt"
-    echo "  $0 --type block --operation block_header --fork fulu --case correct_attestation_included_at_min_inclusion_delay"
+    echo "  $0 -t block -o block_header -k fulu"
 }
 
 # Parse arguments
