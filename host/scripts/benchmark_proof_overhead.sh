@@ -163,7 +163,7 @@ cd "$HOST_DIR"
 if NO_COLOR=1 cargo run --release -- \
     --fork "$FORK" \
     "$OPERATION_TYPE" "$OPERATION_NAME" \
-    > "$NO_PROOF_LOG" 2>&1; then
+    2>&1 | tee "$NO_PROOF_LOG"; then
     END_TIME=$(date +%s%N)
     NO_PROOF_TIME=$((($END_TIME - $START_TIME) / 1000000)) # Convert to milliseconds
     NO_PROOF_TIME_SEC=$(format_time "$NO_PROOF_TIME")
@@ -186,7 +186,7 @@ if NO_COLOR=1 cargo run --release -- \
     --fork "$FORK" \
     --generate-proof \
     "$OPERATION_TYPE" "$OPERATION_NAME" \
-    > "$WITH_PROOF_LOG" 2>&1; then
+    2>&1 | tee "$WITH_PROOF_LOG"; then
     END_TIME=$(date +%s%N)
     WITH_PROOF_TIME=$((($END_TIME - $START_TIME) / 1000000)) # Convert to milliseconds
     WITH_PROOF_TIME_SEC=$(format_time "$WITH_PROOF_TIME")
