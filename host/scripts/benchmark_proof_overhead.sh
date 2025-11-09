@@ -15,6 +15,7 @@ NC='\033[0m' # No Color
 # Default values
 OPERATION_TYPE="block"
 OPERATION_NAME="attestation"
+FORK="electra"
 TEST_CASE=""
 OUTPUT_FILE=""
 LOGS_DIR="./benchmark_logs"
@@ -28,6 +29,7 @@ usage() {
     echo "  -o, --operation NAME     Operation name (default: attestation)"
     echo "                           Block ops: attestation, attester_slashing, block_header, etc."
     echo "                           Epoch ops: justification_and_finalization, inactivity_updates, etc."
+    echo "  -k, --fork FORK          Ethereum fork: 'electra', 'fulu', 'phase0', etc. (default: electra)"
     echo "  -c, --case CASE          Specific test case name (optional, will use first test case if not provided)"
     echo "  -f, --file FILE          Output file for results (default: stdout)"
     echo "  -h, --help              Show this help message"
@@ -35,7 +37,7 @@ usage() {
     echo "Examples:"
     echo "  $0 -t block -o attestation"
     echo "  $0 -t epoch -o justification_and_finalization -f results.txt"
-    echo "  $0 --type block --operation block_header --case first_valid_attestation"
+    echo "  $0 --type block --operation block_header --fork fulu --case correct_attestation_included_at_min_inclusion_delay"
 }
 
 # Parse arguments
@@ -47,6 +49,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -o|--operation)
             OPERATION_NAME="$2"
+            shift 2
+            ;;
+        -k|--fork)
+            FORK="$2"
             shift 2
             ;;
         -c|--case)
@@ -74,7 +80,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOST_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo -e "${BLUE}=== Proof Generation Overhead Benchmark ===${NC}"
-echo -e "${BLUE}Operation: ${OPERATION_TYPE} ${OPERATION_NAME}${NC}"
+echo -e "${BLUE}Operation: ${OPERATION_TYPE} ${OPERATION_NAME} (fork: ${FORK})${NC}"
 
 # Create logs directory
 mkdir -p "$LOGS_DIR"
@@ -85,13 +91,28 @@ if [[ -n "$OUTPUT_FILE" ]]; then
     exec 2>&1
 fi
 
-# Determine the test cases directory
-TEST_CASES_DIR="$HOST_DIR/mainnet/tests/mainnet/mainnet"
-OPERATION_DIR="$TEST_CASES_DIR/${OPERATION_TYPE}s/${OPERATION_NAME}/pyspec_tests"
+# Determine the test cases directory structure:
+# For block operations: mainnet/tests/mainnet/{fork}/operations/{operation_name}/pyspec_tests/
+# For epoch operations: mainnet/tests/mainnet/{fork}/epoch_processing/{operation_name}/pyspec_tests/
+TEST_CASES_DIR="$HOST_DIR/mainnet/tests/mainnet"
+
+if [[ "$OPERATION_TYPE" == "block" ]]; then
+    OPERATION_CATEGORY="operations"
+elif [[ "$OPERATION_TYPE" == "epoch" ]]; then
+    OPERATION_CATEGORY="epoch_processing"
+else
+    echo -e "${YELLOW}Error: Invalid operation type '$OPERATION_TYPE'. Must be 'block' or 'epoch'${NC}"
+    exit 1
+fi
+
+OPERATION_DIR="$TEST_CASES_DIR/$FORK/$OPERATION_CATEGORY/$OPERATION_NAME/pyspec_tests"
 
 if [[ ! -d "$OPERATION_DIR" ]]; then
     echo -e "${YELLOW}Error: Operation directory not found: $OPERATION_DIR${NC}"
     echo "Make sure you have downloaded the test data with 'make download'"
+    echo ""
+    echo "Available forks:"
+    ls "$TEST_CASES_DIR" 2>/dev/null | head -10
     exit 1
 fi
 
@@ -144,6 +165,7 @@ START_TIME=$(date +%s%N)
 NO_PROOF_LOG="$LOGS_DIR/${OPERATION_TYPE}_${OPERATION_NAME}_${TEST_CASE}_no_proof.log"
 cd "$HOST_DIR"
 if NO_COLOR=1 cargo run --release -- \
+    --fork "$FORK" \
     --excluded-cases "$TEST_CASE" \
     "$OPERATION_TYPE" "$OPERATION_NAME" \
     > "$NO_PROOF_LOG" 2>&1; then
@@ -166,6 +188,7 @@ START_TIME=$(date +%s%N)
 WITH_PROOF_LOG="$LOGS_DIR/${OPERATION_TYPE}_${OPERATION_NAME}_${TEST_CASE}_with_proof.log"
 cd "$HOST_DIR"
 if NO_COLOR=1 cargo run --release -- \
+    --fork "$FORK" \
     --excluded-cases "$TEST_CASE" \
     --generate-proof \
     "$OPERATION_TYPE" "$OPERATION_NAME" \

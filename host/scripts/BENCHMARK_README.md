@@ -12,6 +12,7 @@ This script measures the overhead of proof generation by executing a single oper
 
 - `-t, --type TYPE`: Operation type (`block` or `epoch`, default: `block`)
 - `-o, --operation NAME`: Operation name (default: `attestation`)
+- `-k, --fork FORK`: Ethereum fork version (`electra`, `fulu`, `phase0`, etc., default: `electra`)
 - `-c, --case CASE`: Specific test case name (optional, will use first available if not specified)
 - `-f, --file FILE`: Output file for results summary (default: stdout)
 - `-h, --help`: Show help message
